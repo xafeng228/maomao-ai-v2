@@ -65,10 +65,9 @@ def print_result(result: dict):
     if bm:
         print()
         print(" 📊 大单资金摘要（今日）：")
-        print(f" 主力净流入：{bm.get('main_net_today', 0):.2f}亿")
-        print(f" 超大单净流入：{bm.get('xlarge_net_today', 0):.2f}亿")
-        print(f" 主力净占比：{bm.get('main_net_pct', 0):.1f}%")
-        print(f" 近5日累计主力净流入：{bm.get('5d_cumulative', 0):.2f}亿")
+        print(f" 主力净流入：{bm.get('main_net_today', 0):.2f}万手")
+        print(f" 数据来源：{bm.get('data_source', '未知')}")
+        print(f" 交易日：{bm.get('trade_date', '未知')}")
 
     print()
     print(" ⚠️ 统计特征推断，不代表真实主力身份，不构成投资建议")

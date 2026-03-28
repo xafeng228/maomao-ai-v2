@@ -52,3 +52,55 @@ Thumbs.db
 
 # GitHub Actions
 .github/
+
+# 🔐 敏感信息保护
+*.key
+*.pem
+*.cert
+*.crt
+*.env
+.env*
+secrets.*
+config.json
+credentials.json
+token.txt
+api_keys.txt
+passwords.txt
+
+# Tushare加密配置
+tushare/
+*.key
+config.json
+
+# 工作空间敏感文件
+.openclaw/tushare/
+.openclaw/workspace/config/secrets.yaml
+.openclaw/workspace/config/api_config.json
+
+# 临时文件和缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 日志和数据库
+*.log
+*.sql
+*.sqlite
+*.db

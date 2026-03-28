@@ -123,7 +123,7 @@ class BigMoneyFlow:
 # 综合检测器（Tushare真实数据版本）
 # ══════════════════════════════════════════════════════════════
 
-class SmartMoneyDetector:
+class SmartMoneyDetectorReal:
     WEIGHTS = {
         "big_money": 0.35,
         "quant": 0.20,
@@ -184,27 +184,4 @@ class SmartMoneyDetector:
             },
             "detected_at": datetime.now().isoformat(),
             "data_source": "Tushare Pro + 模拟数据混合",
-        }
-
-
-# ══════════════════════════════════════════════════════════════
-# SectorRotation类（scan.py需要）
-# ══════════════════════════════════════════════════════════════
-
-class SectorRotation:
-    def __init__(self, symbol: str = None, industry: str = None):
-        self.symbol = symbol
-        self.industry = industry
-
-    def analyze(self) -> dict:
-        return {
-            "status": "simulated", 
-            "score": 50, 
-            "signals": ["🟡 板块轮动检测（待实现Tushare数据）"],
-            "top_sectors": [
-                {"rank": 1, "sector": "白酒", "main_net_亿": 5.2, "pct_chg": 1.5},
-                {"rank": 2, "sector": "电池", "main_net_亿": 3.8, "pct_chg": 2.1},
-                {"rank": 3, "sector": "医药", "main_net_亿": 2.5, "pct_chg": 0.8},
-            ],
-            "data_source": "模拟数据"
         }
