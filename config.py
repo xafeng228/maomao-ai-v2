@@ -117,3 +117,42 @@ if __name__ == "__main__":
         print("\n🚨 请立即检查并移除硬编码的敏感信息！")
     else:
         print("✅ 安全验证通过（未发现硬编码敏感信息）")
+
+# ── 旧版兼容配置（修复导入错误）────────────────────────────
+# 以下配置用于兼容旧版代码，新代码应使用上面的配置
+
+ANALYSIS = {
+    "history_days": 120,
+    "ma_periods": [5, 20, 60],
+    "rsi_period": 14,
+    "request_timeout": 15,
+}
+
+SCORE_WEIGHTS = {
+    "valuation": 0.30,
+    "technical": 0.30,
+    "fundamental": 0.40,
+}
+
+RATING_THRESHOLDS = {
+    "strong_buy": 80,
+    "buy": 65,
+    "hold": 45,
+    "avoid": 0,
+}
+
+LOGGING_CONFIG = {
+    "level": "WARNING",
+    "format": "%(levelname)s │ %(message)s",
+}
+
+BATCH_CONFIG = {
+    "max_concurrent": 3,
+    "timeout_per_stock": 30,
+}
+
+CACHE_CONFIG = {
+    "enabled": True,
+    "ttl": 300,
+    "max_size": 1000,
+}
