@@ -1,0 +1,42 @@
+{
+  "symbol": "600519",
+  "snapshot": {
+    "status": "live",
+    "source": "akshare",
+    "symbol": "600519",
+    "name": "贵州茅台",
+    "price": 1416.02,
+    "change_pct": 1.06,
+    "volume": 30087,
+    "turnover": 4257499781.0,
+    "high": 1426.0,
+    "low": 1396.66,
+    "open": 1400.0,
+    "close": 1401.18,
+    "timestamp": "2026-03-28T03:50:00.059172"
+  },
+  "financial": {
+    "status": "pending",
+    "symbol": "600519",
+    "message": "财务数据获取待Claude完整实现"
+  },
+  "info": {
+    "status": "pending",
+    "symbol": "600519",
+    "message": "公司信息获取待Claude完整实现"
+  },
+  "score": {
+    "total_score": 0,
+    "rating": "待实现",
+    "dimensions": {
+      "valuation": 0,
+      "technical": 0,
+      "fundamental": 0
+    },
+    "reasoning": [
+      "等待Claude完整实现"
+    ],
+    "disclaimer": "本评分基于待实现算法，仅供参考"
+  },
+  "elapsed": 329.79
+}
