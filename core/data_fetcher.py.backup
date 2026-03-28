@@ -1,0 +1,73 @@
+    # ── 备用数据方法 ────────────────────────────────────────
+    def _get_fallback_snapshot(self, symbol: str) -> Dict:
+        """获取备用实时快照数据（模拟数据，明确标记）"""
+        import random
+        from datetime import datetime
+        
+        # 根据股票代码生成模拟数据
+        base_price = 100.0 if symbol.startswith("6") else 50.0
+        price_variation = random.uniform(-0.1, 0.1)  # ±10%波动
+        current_price = base_price * (1 + price_variation)
+        
+        return {
+            "status": "fallback",
+            "source": "fallback_simulation",
+            "symbol": symbol,
+            "name": f"股票{symbol}(模拟)",
+            "price": round(current_price, 2),
+            "change_pct": round(price_variation * 100, 2),
+            "volume": random.randint(100000, 1000000),
+            "turnover": round(current_price * random.randint(1000, 10000), 2),
+            "high": round(current_price * 1.05, 2),
+            "low": round(current_price * 0.95, 2),
+            "open": round(current_price * (1 + random.uniform(-0.02, 0.02)), 2),
+            "close": round(current_price * 0.99, 2),  # 昨收
+            "timestamp": datetime.now().isoformat(),
+            "note": "⚠️ 此为模拟数据，因真实数据获取失败"
+        }
+    
+    def _get_fallback_history(self, symbol: str) -> Dict:
+        """获取备用历史数据（模拟数据，明确标记）"""
+        import pandas as pd
+        import numpy as np
+        from datetime import datetime, timedelta
+        
+        # 生成模拟历史数据
+        days = self.history_days
+        dates = [(datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d') 
+                for i in range(days, 0, -1)]
+        
+        # 基础价格
+        base_price = 100.0 if symbol.startswith("6") else 50.0
+        
+        # 生成随机价格序列
+        np.random.seed(hash(symbol) % 10000)  # 根据symbol生成确定性随机
+        returns = np.random.normal(0.0005, 0.02, days)  # 日均收益0.05%，波动2%
+        prices = base_price * np.exp(np.cumsum(returns))
+        
+        # 生成成交量
+        volumes = np.random.randint(100000, 1000000, days)
+        
+        # 创建DataFrame
+        df = pd.DataFrame({
+            'date': dates,
+            'open': prices * np.random.uniform(0.98, 1.02, days),
+            'high': prices * np.random.uniform(1.01, 1.05, days),
+            'low': prices * np.random.uniform(0.95, 0.99, days),
+            'close': prices,
+            'volume': volumes,
+            'amount': prices * volumes,
+            'pct_chg': returns * 100
+        })
+        
+        df['date'] = pd.to_datetime(df['date'])
+        
+        return {
+            "status": "fallback",
+            "source": "fallback_simulation",
+            "symbol": symbol,
+            "df": df,
+            "rows": len(df),
+            "period": f"模拟{days}天历史数据",
+            "note": "⚠️ 此为模拟历史数据，因真实数据获取失败"
+            }
