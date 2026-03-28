@@ -49,3 +49,6 @@ Thumbs.db
 .cache/
 .pytest_cache/
 .mypy_cache/
+
+# GitHub Actions
+.github/
