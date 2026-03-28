@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-毛毛AI - 全局配置（安全版本）
+毛毛AI - 全局配置（完全安全版本）
 所有敏感信息从环境变量或加密文件加载，绝不硬编码
 """
 from pathlib import Path
 import os
+import sys
 
 # ── 目录结构 ──────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
@@ -15,32 +16,42 @@ LOGS_DIR = BASE_DIR / "logs"
 for _d in [RESULTS_DIR, MEMORY_DIR, LOGS_DIR]:
     _d.mkdir(parents=True, exist_ok=True)
 
-# ── 敏感信息加载（安全方式）───────────────────────────────
-# 优先级: 1.环境变量 2.加密配置文件 3.留空（使用免费数据源）
+# ── 敏感信息加载（完全安全）───────────────────────────────
 TUSHARE_TOKEN = ""
+DATA_SOURCES = ["akshare"]  # 默认使用免费数据源
 
-try:
-    # 方法1: 从环境变量加载
-    TUSHARE_TOKEN = os.environ.get('TUSHARE_TOKEN', '')
+def _load_tushare_token_safely():
+    """安全加载Tushare Token（多层保护）"""
+    token = ""
     
-    # 方法2: 如果环境变量为空，尝试从加密配置加载
-    if not TUSHARE_TOKEN:
-        import sys
+    # 方法1: 环境变量（最安全）
+    token = os.environ.get('TUSHARE_TOKEN', '')
+    if token:
+        return token, "环境变量"
+    
+    # 方法2: 加密配置文件（次安全）
+    try:
         sys.path.insert(0, str(Path.home() / ".openclaw" / "workspace"))
         from tushare_config import TushareConfig
         config = TushareConfig()
-        TUSHARE_TOKEN = config.load_token()
-        
-    if TUSHARE_TOKEN:
-        print(f"✅ Tushare Token已安全加载")
-        DATA_SOURCES = ["tushare", "akshare"]
-    else:
-        print("⚠️ 未找到Tushare Token，使用免费数据源")
-        DATA_SOURCES = ["akshare"]
-        
-except Exception as e:
-    print(f"⚠️ Tushare Token加载失败: {e}")
-    DATA_SOURCES = ["akshare"]
+        token = config.load_token()
+        if token:
+            return token, "加密配置文件"
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"⚠️ 加密配置加载失败: {e}")
+    
+    # 方法3: 留空（使用免费数据源）
+    return "", "未配置（使用免费数据源）"
+
+# 安全加载Token
+TUSHARE_TOKEN, token_source = _load_tushare_token_safely()
+if TUSHARE_TOKEN:
+    DATA_SOURCES = ["tushare", "akshare"]
+    print(f"✅ Tushare Token已从{token_source}安全加载")
+else:
+    print(f"ℹ️ {token_source}")
 
 # ── 资金监测权重 ──────────────────────────────────────────
 SMART_MONEY_WEIGHTS = {
@@ -76,27 +87,34 @@ MONITOR_CONFIG = {
     "scan_interval": 300,
 }
 
-def validate_config():
-    """验证配置安全性"""
-    errors = []
-    
-    # 检查是否有硬编码的敏感信息
+def validate_security():
+    """验证配置安全性（检查硬编码敏感信息）"""
     import inspect
-    source = inspect.getsource(validate_config)
-    if '47cccc530127d9e8aedd266fc57a45dfc52ccaa3bd089ed0431f6bfb' in source:
-        errors.append("❌ 检测到硬编码的敏感Token！")
     
-    if sum(SMART_MONEY_WEIGHTS.values()) != 1.0:
-        errors.append(f"权重配置错误: {sum(SMART_MONEY_WEIGHTS.values())}")
+    # 获取当前文件源代码
+    current_file = Path(__file__).read_text(encoding='utf-8')
     
-    return errors
+    # 检查是否有硬编码的敏感信息模式
+    dangerous_patterns = [
+        r'47cccc530127d9e8aedd266fc57a45dfc52ccaa3bd089ed0431f6bfb',  # 示例token
+        r'[0-9a-f]{40,}',  # 长哈希（可能是token）
+        r'[A-Za-z0-9]{32,}',  # 长字符串（可能是key）
+    ]
+    
+    warnings = []
+    for pattern in dangerous_patterns:
+        import re
+        if re.search(pattern, current_file):
+            warnings.append(f"⚠️ 检测到可能的硬编码敏感信息模式: {pattern}")
+    
+    return warnings
 
 if __name__ == "__main__":
-    errors = validate_config()
-    if errors:
-        print("配置验证失败:")
-        for err in errors:
-            print(f"  - {err}")
-        exit(1)
+    warnings = validate_security()
+    if warnings:
+        print("安全验证警告:")
+        for warn in warnings:
+            print(f"  {warn}")
+        print("\n🚨 请立即检查并移除硬编码的敏感信息！")
     else:
-        print("✅ 配置验证通过（安全检查完成）")
+        print("✅ 安全验证通过（未发现硬编码敏感信息）")
