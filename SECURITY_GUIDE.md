@@ -5,7 +5,7 @@
 ### 1. 绝不硬编码敏感信息
 ```python
 # ❌ 错误做法（绝对禁止！）
-TUSHARE_TOKEN = "47cccc530127d9e8aedd266fc57a45dfc52ccaa3bd089ed0431f6bfb"
+TUSHARE_TOKEN = "your_actual_token_here_never_commit_this"
 
 # ✅ 正确做法
 TUSHARE_TOKEN = os.environ.get('TUSHARE_TOKEN', '')
@@ -85,7 +85,7 @@ config.save_token("你的token", "备注信息")
 ### 🔍 安全验证方法
 ```bash
 # 1. 检查是否有硬编码敏感信息
-grep -r "47cccc530127d9e8aedd266fc57a45dfc52ccaa3bd089ed0431f6bfb" .
+grep -r "your_actual_token" .  # 替换为你的实际token关键词
 
 # 2. 验证.gitignore配置
 cat .gitignore | grep -E "(token|key|secret|\.env)"

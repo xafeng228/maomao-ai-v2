@@ -96,7 +96,6 @@ def validate_security():
     
     # 检查是否有硬编码的敏感信息模式
     dangerous_patterns = [
-        r'47cccc530127d9e8aedd266fc57a45dfc52ccaa3bd089ed0431f6bfb',  # 示例token
         r'[0-9a-f]{40,}',  # 长哈希（可能是token）
         r'[A-Za-z0-9]{32,}',  # 长字符串（可能是key）
     ]
