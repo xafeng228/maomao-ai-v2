@@ -7,6 +7,7 @@ core/data_fetcher.py
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -52,6 +53,9 @@ class DataFetcher:
 
     def __init__(self):
         self._check_dependencies()
+        # 缓存初始化
+        self._cache = {}
+        self._cache_ttl = 300  # 5分钟缓存
 
     # ── 依赖检查 ──────────────────────────────────────────────
     def _check_dependencies(self):
@@ -81,12 +85,30 @@ class DataFetcher:
         获取单只股票实时快照
         返回：price / change_pct / volume / turnover / pe / pb / market_cap
         """
+        # 检查缓存
+        cache_key = f"snapshot_{symbol}"
+        if cache_key in self._cache:
+            ts, data = self._cache[cache_key]
+            if time.time() - ts < self._cache_ttl:
+                logger.debug("[缓存命中] %s", symbol)
+                return data
+
+        # 多数据源尝试
         for source in DATA_SOURCES:
             try:
                 if source == "akshare":
-                    return self._snapshot_akshare(symbol)
-                if source == "baostock":
-                    return self._snapshot_baostock(symbol)
+                    result = self._snapshot_akshare(symbol)
+                elif source == "baostock":
+                    result = self._snapshot_baostock(symbol)
+                else:
+                    continue
+                
+                # 仅缓存成功数据
+                if result.get("status") == "live":
+                    self._cache[cache_key] = (time.time(), result)
+                    logger.debug("[缓存保存] %s → %s", symbol, source)
+                
+                return result
             except Exception as e:
                 logger.warning("[%s] 快照失败 %s: %s", source, symbol, e)
 
@@ -98,12 +120,30 @@ class DataFetcher:
         返回：DataFrame 含 date/open/high/low/close/volume/amount/pct_chg
         """
         days = days or ANALYSIS["history_days"]
+        
+        # 检查缓存
+        cache_key = f"history_{symbol}_{days}"
+        if cache_key in self._cache:
+            ts, data = self._cache[cache_key]
+            if time.time() - ts < self._cache_ttl:
+                logger.debug("[缓存命中] %s %d天历史", symbol, days)
+                return data
+
         for source in DATA_SOURCES:
             try:
                 if source == "akshare":
-                    return self._history_akshare(symbol, days)
-                if source == "baostock":
-                    return self._history_baostock(symbol, days)
+                    result = self._history_akshare(symbol, days)
+                elif source == "baostock":
+                    result = self._history_baostock(symbol, days)
+                else:
+                    continue
+                
+                # 仅缓存成功数据
+                if result.get("status") == "live":
+                    self._cache[cache_key] = (time.time(), result)
+                    logger.debug("[缓存保存] %s %d天历史 → %s", symbol, days, source)
+                
+                return result
             except Exception as e:
                 logger.warning("[%s] 历史数据失败 %s: %s", source, symbol, e)
 

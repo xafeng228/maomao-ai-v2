@@ -114,3 +114,9 @@ if __name__ == "__main__":
             print(f"   - {err}")
     else:
         print("\n✅ 配置验证通过")
+# 缓存配置
+CACHE_CONFIG = {
+    "ttl_seconds": 300,  # 5分钟缓存
+    "max_size": 100,     # 最大缓存条目数
+    "enabled": True,     # 是否启用缓存
+}
