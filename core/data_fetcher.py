@@ -1,3 +1,4 @@
+import time
 #!/usr/bin/env python3
 """
 core/data_fetcher.py
@@ -7,7 +8,6 @@ core/data_fetcher.py
 from __future__ import annotations
 
 import logging
-import time
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -53,9 +53,6 @@ class DataFetcher:
 
     def __init__(self):
         self._check_dependencies()
-        # 缓存初始化
-        self._cache = {}
-        self._cache_ttl = 300  # 5分钟缓存
 
     # ── 依赖检查 ──────────────────────────────────────────────
     def _check_dependencies(self):
@@ -81,72 +78,54 @@ class DataFetcher:
     # ══════════════════════════════════════════════════════════
 
     def get_snapshot(self, symbol: str) -> dict:
+        if not self._cache_enabled:
+            # 直接获取数据，不使用缓存
+            return self._snapshot_akshare(symbol) if DATA_SOURCES[0] == "akshare" else self._snapshot_baostock(symbol)
         """
         获取单只股票实时快照
         返回：price / change_pct / volume / turnover / pe / pb / market_cap
         """
-        # 检查缓存
-        cache_key = f"snapshot_{symbol}"
-        if cache_key in self._cache:
-            ts, data = self._cache[cache_key]
-            if time.time() - ts < self._cache_ttl:
-                logger.debug("[缓存命中] %s", symbol)
-                return data
-
-        # 多数据源尝试
         for source in DATA_SOURCES:
             try:
                 if source == "akshare":
-                    result = self._snapshot_akshare(symbol)
-                elif source == "baostock":
-                    result = self._snapshot_baostock(symbol)
-                else:
-                    continue
-                
-                # 仅缓存成功数据
-                if result.get("status") == "live":
-                    self._cache[cache_key] = (time.time(), result)
-                    logger.debug("[缓存保存] %s → %s", symbol, source)
-                
-                return result
+                    return self._snapshot_akshare(symbol)
+                if source == "baostock":
+                    return self._snapshot_baostock(symbol)
             except Exception as e:
                 logger.warning("[%s] 快照失败 %s: %s", source, symbol, e)
 
+        
+        # 清理过期缓存
+        self._clean_expired_cache()
+        
+        # 检查缓存大小，必要时清理
+        self._clean_cache_if_needed()
         return {"status": "error", "symbol": symbol, "message": "所有数据源均失败"}
 
     def get_history(self, symbol: str, days: int = None) -> dict:
+        if not self._cache_enabled:
+            # 直接获取数据，不使用缓存
+            return self._history_akshare(symbol, days) if DATA_SOURCES[0] == "akshare" else self._history_baostock(symbol, days)
         """
         获取历史 K 线（日线）
         返回：DataFrame 含 date/open/high/low/close/volume/amount/pct_chg
         """
         days = days or ANALYSIS["history_days"]
-        
-        # 检查缓存
-        cache_key = f"history_{symbol}_{days}"
-        if cache_key in self._cache:
-            ts, data = self._cache[cache_key]
-            if time.time() - ts < self._cache_ttl:
-                logger.debug("[缓存命中] %s %d天历史", symbol, days)
-                return data
-
         for source in DATA_SOURCES:
             try:
                 if source == "akshare":
-                    result = self._history_akshare(symbol, days)
-                elif source == "baostock":
-                    result = self._history_baostock(symbol, days)
-                else:
-                    continue
-                
-                # 仅缓存成功数据
-                if result.get("status") == "live":
-                    self._cache[cache_key] = (time.time(), result)
-                    logger.debug("[缓存保存] %s %d天历史 → %s", symbol, days, source)
-                
-                return result
+                    return self._history_akshare(symbol, days)
+                if source == "baostock":
+                    return self._history_baostock(symbol, days)
             except Exception as e:
                 logger.warning("[%s] 历史数据失败 %s: %s", source, symbol, e)
 
+        
+        # 清理过期缓存
+        self._clean_expired_cache()
+        
+        # 检查缓存大小，必要时清理
+        self._clean_cache_if_needed()
         return {"status": "error", "symbol": symbol, "df": None}
 
     def get_company_info(self, symbol: str) -> dict:
@@ -326,3 +305,65 @@ class DataFetcher:
             }
         finally:
             bs.logout()
+    # ── 缓存管理方法 ──────────────────────────────────────────────
+    def _clean_cache_if_needed(self):
+        """清理缓存，如果超过最大大小"""
+        if len(self._cache) <= self._max_cache_size:
+            return
+        
+        logger.debug("[缓存清理] 当前大小: %d，最大限制: %d", 
+                    len(self._cache), self._max_cache_size)
+        
+        # 按时间戳排序，删除最旧的缓存
+        items = list(self._cache.items())
+        items.sort(key=lambda x: x[1][0])  # 按时间戳排序
+        
+        # 删除超过限制的部分（保留最新的max_size个）
+        to_remove = len(items) - self._max_cache_size
+        for i in range(to_remove):
+            key, _ = items[i]
+            del self._cache[key]
+        
+        logger.debug("[缓存清理] 已删除 %d 个旧缓存项", to_remove)
+    
+    def _clean_expired_cache(self):
+        """清理过期的缓存"""
+        current_time = time.time()
+        expired_keys = []
+        
+        for key, (timestamp, _) in self._cache.items():
+            if current_time - timestamp > self._cache_ttl:
+                expired_keys.append(key)
+        
+        for key in expired_keys:
+            del self._cache[key]
+        
+        if expired_keys:
+            logger.debug("[缓存清理] 已清理 %d 个过期缓存项", len(expired_keys))
+    
+    def clear_cache(self):
+        """清空所有缓存"""
+        cache_size = len(self._cache)
+        self._cache.clear()
+        logger.info("[缓存清理] 已清空所有缓存，共 %d 项", cache_size)
+    
+    def get_cache_stats(self) -> dict:
+        """获取缓存统计信息"""
+        current_time = time.time()
+        expired_count = 0
+        recent_count = 0
+        
+        for _, (timestamp, _) in self._cache.items():
+            if current_time - timestamp > self._cache_ttl:
+                expired_count += 1
+            elif current_time - timestamp < 60:  # 最近1分钟
+                recent_count += 1
+        
+        return {
+            "total_items": len(self._cache),
+            "expired_items": expired_count,
+            "recent_items": recent_count,
+            "max_size": self._max_cache_size,
+            "ttl_seconds": self._cache_ttl,
+            "enabled": self._cache_enabled,
+        }
