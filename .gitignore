@@ -44,3 +44,8 @@ venv.bak/
 *~
 .DS_Store
 Thumbs.db
+
+# 缓存文件
+.cache/
+.pytest_cache/
+.mypy_cache/
